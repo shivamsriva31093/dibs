@@ -1,0 +1,258 @@
+<!doctype html>
+<!--
+  The frame the demo video is recorded from: what each agent is doing on the left,
+  the real board on the right, and the narration as a caption underneath.
+  record.ts opens this page in a headless browser and drives it.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dibs demo stage</title>
+    <style>
+      @font-face {
+        font-family: "Recursive Variable";
+        src: url("/font.woff2") format("woff2-variations");
+        font-weight: 300 1000;
+      }
+      :root {
+        --paper: #f2f4ef;
+        --wash: #e6eae4;
+        --rule: #cbd3cc;
+        --ink: #17211d;
+        --ink-soft: #55615b;
+        --signal: #d1174f;
+        --land: #1e7f56;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Recursive Variable", ui-sans-serif, system-ui, sans-serif;
+        font-variation-settings: "MONO" 0, "CASL" 0;
+        -webkit-font-smoothing: antialiased;
+      }
+      .mono {
+        font-variation-settings: "MONO" 1, "CASL" 0;
+      }
+      #agents {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 600px;
+        height: 948px;
+        background: var(--wash);
+        border-right: 1px solid var(--rule);
+        padding: 18px 20px 0;
+      }
+      #agents h1 {
+        margin: 0 0 12px;
+        font-size: 19px;
+        font-weight: 650;
+        display: flex;
+        align-items: baseline;
+        gap: 7px;
+      }
+      #agents h1 span {
+        color: var(--ink-soft);
+        font-weight: 400;
+      }
+      #clock {
+        margin-left: auto;
+        color: var(--ink-soft);
+        font-size: 16px;
+        font-weight: 400;
+      }
+      .pane {
+        height: 170px;
+        margin-bottom: 8px;
+        padding: 10px 14px 0 18px;
+        background: color-mix(in oklch, var(--stake) 9%, var(--paper));
+        box-shadow: inset 4px 0 0 var(--stake);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .pane header {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        font-size: 17px;
+      }
+      .pane .name {
+        color: var(--stake);
+        font-weight: 700;
+      }
+      .pane .title {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .pane .state {
+        font-size: 14px;
+        color: var(--ink-soft);
+        white-space: nowrap;
+      }
+      .pane .state.person {
+        color: var(--signal);
+        font-weight: 650;
+      }
+      .pane .state.landed {
+        color: var(--land);
+        font-weight: 650;
+      }
+      .pane ol {
+        list-style: none;
+        margin: 8px 0 0;
+        padding: 0;
+        font-size: 14.5px;
+        line-height: 1.5;
+        color: var(--ink-soft);
+      }
+      .pane li {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .pane li:last-child {
+        color: var(--ink);
+      }
+      #board {
+        position: absolute;
+        left: 600px;
+        top: 0;
+        width: 1320px;
+        height: 948px;
+        border: 0;
+        background: var(--paper);
+      }
+      #caption {
+        position: absolute;
+        left: 0;
+        top: 948px;
+        width: 1920px;
+        height: 132px;
+        background: var(--ink);
+        color: var(--paper);
+        display: flex;
+        align-items: center;
+        padding: 0 64px;
+        font-size: 31px;
+        line-height: 1.3;
+        font-weight: 450;
+      }
+      #caption span {
+        max-width: 1700px;
+      }
+      #cursor {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 28px;
+        height: 28px;
+        z-index: 10;
+        pointer-events: none;
+        opacity: 0;
+        transition:
+          transform 700ms cubic-bezier(0.3, 0.1, 0.2, 1),
+          opacity 200ms;
+      }
+      #cursor.pressed svg {
+        transform: scale(0.82);
+      }
+      #cursor svg {
+        transition: transform 120ms;
+        transform-origin: 4px 3px;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+      }
+    </style>
+  </head>
+  <body>
+    <section id="agents">
+      <h1>The agents <span>five headless Claude Code sessions</span><time id="clock" class="mono"></time></h1>
+      <div id="panes"></div>
+    </section>
+    <iframe id="board" title="The dibs board"></iframe>
+    <div id="caption"><span></span></div>
+    <div id="cursor">
+      <svg viewBox="0 0 28 28" width="28" height="28">
+        <path d="M4 3 L4 22 L9.5 17 L13.5 25.5 L16.5 24 L12.6 15.8 L20 15.5 Z" fill="#17211d" stroke="#f2f4ef" stroke-width="1.6" stroke-linejoin="round" />
+      </svg>
+    </div>
+
+    <script>
+      const escapeHtml = (text) => text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+      // agents: [{ name, title, color, state, kind, lines }]; kind is "", "person" or "landed".
+      window.setAgents = (agents) => {
+        document.getElementById("panes").innerHTML = agents
+          .map(
+            (agent) => `
+          <article class="pane" style="--stake: ${agent.color}">
+            <header>
+              <span class="name">${escapeHtml(agent.name)}</span>
+              <span class="title">${escapeHtml(agent.title)}</span>
+              <span class="state ${agent.kind}">${escapeHtml(agent.state)}</span>
+            </header>
+            <ol class="mono">${agent.lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ol>
+          </article>`,
+          )
+          .join("");
+      };
+
+      window.setCaption = (text) => {
+        document.querySelector("#caption span").textContent = text;
+      };
+
+      // The time since the agents were started, so that it can be seen that the run is not cut or sped up.
+      let ticking = 0;
+      window.startClock = () => {
+        const began = Date.now();
+        const show = () => {
+          const seconds = Math.floor((Date.now() - began) / 1000);
+          document.getElementById("clock").textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+        };
+        show();
+        ticking = setInterval(show, 200);
+      };
+      window.stopClock = () => clearInterval(ticking);
+
+      window.openBoard = (url) => {
+        document.getElementById("board").src = url;
+      };
+
+      // The board's own document. The recording browser runs without the same-origin policy, so this is allowed.
+      window.boardDocument = () => document.getElementById("board").contentDocument;
+
+      // Types into a React-controlled field of the board.
+      window.typeInBoard = (element, text) => {
+        const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), "value").set;
+        setter.call(element, text);
+        element.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+
+      // Where an element of the board is on the stage.
+      window.stagePoint = (element) => {
+        const frame = document.getElementById("board").getBoundingClientRect();
+        const box = element.getBoundingClientRect();
+        return { x: frame.left + box.left + Math.min(box.width / 2, 60), y: frame.top + box.top + box.height / 2 };
+      };
+
+      const cursor = document.getElementById("cursor");
+      window.moveCursor = (x, y) => {
+        cursor.style.opacity = "1";
+        cursor.style.transform = `translate(${x - 4}px, ${y - 3}px)`;
+      };
+      window.pressCursor = (down) => cursor.classList.toggle("pressed", down);
+      window.hideCursor = () => {
+        cursor.style.opacity = "0";
+      };
+    </script>
+  </body>
+</html>

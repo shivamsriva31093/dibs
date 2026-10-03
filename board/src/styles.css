@@ -1,0 +1,114 @@
+@import "tailwindcss";
+@import "@fontsource-variable/recursive/full.css";
+
+/*
+  The board is drawn like a surveyor's plat: pale drafting film, dark ink, and
+  one pencil colour per agent marking the ground it has claimed. One loud colour,
+  signal, is kept for the single thing that needs a person.
+*/
+@theme {
+  --color-paper: #f2f4ef;
+  --color-wash: #e6eae4;
+  --color-rule: #cbd3cc;
+  --color-ink: #17211d;
+  --color-ink-soft: #55615b;
+  --color-signal: #d1174f;
+  --color-land: #1e7f56;
+  --color-caution: #a85f00;
+
+  --font-sans: "Recursive Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Recursive Variable", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-variation-settings:
+      "MONO" 0,
+      "CASL" 0;
+    font-size: 16px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Paths, commit ids and diffs: the same family with its monospace axis on. */
+  .mono {
+    font-family: var(--font-mono);
+    font-variation-settings:
+      "MONO" 1,
+      "CASL" 0;
+  }
+
+  /* The wordmark is the one place the typeface's casual axis is used: "dibs" is a playground word. */
+  .wordmark {
+    font-variation-settings:
+      "MONO" 0,
+      "CASL" 1;
+    font-weight: 850;
+    letter-spacing: -0.02em;
+  }
+
+  /* A claimed row: tinted with its agent's colour, with a solid stake at the left edge. */
+  .stake {
+    background: color-mix(in oklch, var(--stake) 11%, var(--color-paper));
+    box-shadow: inset 4px 0 0 var(--stake);
+  }
+
+  .refused {
+    animation: refused-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) 1;
+  }
+
+  .arrived {
+    animation: arrived-wash 1600ms ease-out 1;
+  }
+}
+
+@keyframes refused-shake {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(4px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-6px);
+  }
+  40%,
+  60% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes arrived-wash {
+  from {
+    background: color-mix(in oklch, var(--color-ink) 12%, var(--color-paper));
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refused,
+  .arrived {
+    animation: none;
+  }
+}

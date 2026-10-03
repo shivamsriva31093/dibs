@@ -1,0 +1,9 @@
+{
+  "_comment": "How the narration says what it writes differently. Only the text sent to the voice changes; the captions keep the written form.",
+  "entries": [
+    { "term": "findUser", "say": "find user" },
+    { "term": "sync_with_main", "say": "sync with main" },
+    { "term": "pnpm", "say": "P N P M" },
+    { "term": "MIT", "say": "M I T" }
+  ]
+}

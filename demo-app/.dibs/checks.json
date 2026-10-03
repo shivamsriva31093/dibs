@@ -1,0 +1,4 @@
+{
+  "checks": [{ "name": "test", "run": "npm test" }],
+  "timeout_seconds": 300
+}

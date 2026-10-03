@@ -1,0 +1,9 @@
+# Copy this file to .dev.vars and put real values in it. Git ignores .dev.vars.
+# `wrangler dev` reads it, and the first deploy uploads it as the Worker's secrets
+# (`pnpm run deploy:first`).
+
+# Guards the HTTP API and the board. Choose a long random string.
+ADMIN_TOKEN=
+
+# Used by the reviewer model.
+ANTHROPIC_API_KEY=

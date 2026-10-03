@@ -1,0 +1,379 @@
+<!doctype html>
+<!--
+  The cards that open and close the demo video. build.ts opens this page with
+  ?card=<name>, sets the caption to the line being spoken, and takes a picture.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dibs demo cards</title>
+    <style>
+      @font-face {
+        font-family: "Recursive Variable";
+        src: url("/font.woff2") format("woff2-variations");
+        font-weight: 300 1000;
+      }
+      :root {
+        --paper: #f2f4ef;
+        --wash: #e6eae4;
+        --rule: #cbd3cc;
+        --ink: #17211d;
+        --ink-soft: #55615b;
+        --signal: #d1174f;
+        --land: #1e7f56;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Recursive Variable", ui-sans-serif, system-ui, sans-serif;
+        font-variation-settings: "MONO" 0, "CASL" 0;
+        -webkit-font-smoothing: antialiased;
+      }
+      .mono {
+        font-variation-settings: "MONO" 1, "CASL" 0;
+      }
+      .wordmark {
+        font-variation-settings: "MONO" 0, "CASL" 1;
+        font-weight: 850;
+        letter-spacing: -0.02em;
+      }
+      main {
+        position: absolute;
+        inset: 0 0 132px 0;
+        padding: 96px 140px 0;
+        display: none;
+      }
+      main.shown {
+        display: block;
+      }
+      .later {
+        visibility: hidden;
+      }
+      .corner {
+        position: absolute;
+        left: 140px;
+        top: 64px;
+        font-size: 34px;
+      }
+      h1 {
+        margin: 84px 0 0;
+        font-size: 76px;
+        line-height: 1.08;
+        font-weight: 720;
+        letter-spacing: -0.015em;
+        max-width: 1500px;
+      }
+      p.lead {
+        margin: 36px 0 0;
+        font-size: 38px;
+        line-height: 1.35;
+        color: var(--ink-soft);
+        max-width: 1400px;
+      }
+      ul.plain,
+      ol.steps {
+        margin: 64px 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 42px;
+        line-height: 1.3;
+      }
+      ul.plain li {
+        padding: 22px 0 22px 34px;
+        border-left: 6px solid var(--ink);
+        margin-bottom: 26px;
+        max-width: 1500px;
+      }
+      ul.plain li small {
+        display: block;
+        margin-top: 6px;
+        font-size: 30px;
+        color: var(--ink-soft);
+      }
+      ol.steps {
+        counter-reset: step;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 28px;
+      }
+      ol.steps li {
+        counter-increment: step;
+        background: var(--wash);
+        padding: 30px 30px 34px;
+        border-radius: 3px;
+        font-size: 34px;
+        line-height: 1.28;
+        min-height: 300px;
+      }
+      ol.steps li::before {
+        content: counter(step);
+        display: block;
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--ink-soft);
+        margin-bottom: 18px;
+      }
+      ol.steps li b {
+        display: block;
+        font-size: 44px;
+        font-weight: 720;
+        margin-bottom: 12px;
+      }
+      table.parts {
+        margin-top: 52px;
+        border-collapse: collapse;
+        font-size: 33px;
+        line-height: 1.3;
+      }
+      table.parts th {
+        text-align: left;
+        vertical-align: top;
+        font-weight: 720;
+        padding: 17px 48px 17px 0;
+        white-space: nowrap;
+      }
+      table.parts td {
+        padding: 17px 0;
+        color: var(--ink-soft);
+        max-width: 1150px;
+      }
+      table.parts tr + tr {
+        border-top: 1px solid var(--rule);
+      }
+      table.parts tr.later {
+        border-top-color: transparent;
+      }
+      /* Six parts fit above the caption only with the smaller heading the terminal cards use. */
+      #built {
+        padding-top: 64px;
+      }
+      #built h1 {
+        margin-top: 60px;
+        font-size: 60px;
+      }
+      #built table.parts {
+        margin-top: 36px;
+        font-size: 31px;
+      }
+      #built table.parts th,
+      #built table.parts td {
+        padding-top: 13px;
+        padding-bottom: 13px;
+      }
+      #built table.parts td {
+        max-width: 1250px;
+      }
+
+      /* The title and end cards. */
+      #title,
+      #end {
+        padding-top: 230px;
+      }
+      #title .wordmark,
+      #end .wordmark {
+        font-size: 300px;
+        line-height: 0.9;
+      }
+      #title p,
+      #end p {
+        margin: 44px 0 0 8px;
+        font-size: 52px;
+        line-height: 1.25;
+        max-width: 1500px;
+      }
+      #title p.small,
+      #end p.small {
+        margin-top: 26px;
+        font-size: 34px;
+        color: var(--ink-soft);
+      }
+
+      /* The terminals on the cards that show what landed. */
+      .landed {
+        padding-top: 64px;
+      }
+      .landed h1 {
+        margin-top: 60px;
+        font-size: 60px;
+      }
+      .terminal {
+        margin-top: 34px;
+        background: var(--ink);
+        color: #dfe6e0;
+        border-radius: 6px;
+        padding: 30px 38px;
+        font-size: 24px;
+        line-height: 1.45;
+        white-space: pre;
+        overflow: hidden;
+        height: 690px;
+      }
+      .terminal em {
+        color: #9aa8a0;
+        font-style: normal;
+      }
+      .terminal b {
+        color: #fff;
+        font-weight: 650;
+      }
+      .terminal i {
+        color: #8fd0ad;
+        font-style: normal;
+      }
+      .terminal u {
+        color: #f0b86c;
+        text-decoration: none;
+      }
+      .terminal div {
+        overflow: hidden;
+      }
+
+      #caption {
+        position: absolute;
+        left: 0;
+        top: 948px;
+        width: 1920px;
+        height: 132px;
+        background: var(--ink);
+        color: var(--paper);
+        display: flex;
+        align-items: center;
+        padding: 0 64px;
+        font-size: 31px;
+        line-height: 1.3;
+        font-weight: 450;
+      }
+      #caption span {
+        max-width: 1700px;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="title">
+      <div class="wordmark">dibs</div>
+      <p>Many coding agents. One git repository. No pull requests.</p>
+      <p class="small">Built on Cloudflare Workers, Containers and Artifacts</p>
+    </main>
+
+    <main id="problem">
+      <div class="corner wordmark">dibs</div>
+      <h1>Git assumes a few people who talk to each other.</h1>
+      <ul class="plain">
+        <li data-step="1">Intent is invisible until the work is done.<small>Two agents rewrite the same file, and neither knows.</small></li>
+        <li data-step="2">The collisions that matter are not textual.<small>One changes what a function returns, another calls it. The merge is clean; main is broken.</small></li>
+        <li data-step="3">A person reviews everything.<small>Agents write faster than people read.</small></li>
+      </ul>
+    </main>
+
+    <main id="idea">
+      <div class="corner wordmark">dibs</div>
+      <h1>Say what you will touch, and how.</h1>
+      <ol class="steps">
+        <li data-step="1"><b>Scope</b>Code to change, which is exclusive; to add to, which is shared; or to rely on, and be told when it moves.</li>
+        <li data-step="2"><b>Work</b>A private fork on Artifacts, and plain git.</li>
+        <li data-step="3"><b>Check</b>The contracts between the code, from an index of every file. Then the repository's own tests, in a container.</li>
+        <li data-step="4"><b>Land</b>A reviewer reads what tests cannot see. dibs lands the change, sends it back with the reason, or asks a person.</li>
+      </ol>
+    </main>
+
+    <main id="run">
+      <div class="corner wordmark">dibs</div>
+      <h1>A real run.</h1>
+      <p class="lead">Five Claude Code agents on one repository, on a deployed Worker: real Artifacts, real containers, the real decision model, the real reviewer.</p>
+      <p class="lead" data-step="1">One thing is arranged: one agent is told to break a test in its first attempt.</p>
+    </main>
+
+    <main id="proof" class="landed">
+      <div class="corner wordmark">dibs</div>
+      <h1>What landed, read with plain git</h1>
+      <div class="terminal mono"><div id="proof-log"></div><div id="proof-tests" data-step="1"></div></div>
+    </main>
+
+    <main id="trailers" class="landed">
+      <div class="corner wordmark">dibs</div>
+      <h1>Every commit says where it came from</h1>
+      <div class="terminal mono"><div id="trailers-commit"></div></div>
+    </main>
+
+    <main id="note" class="landed">
+      <div class="corner wordmark">dibs</div>
+      <h1>The record travels with the commit</h1>
+      <div class="terminal mono"><div id="note-verdict"></div></div>
+    </main>
+
+    <main id="built">
+      <div class="corner wordmark">dibs</div>
+      <h1>How it is built</h1>
+      <table class="parts">
+        <tr data-step="1">
+          <th>Durable Object</th>
+          <td>One per repository: the scopes, the line, and an index of what every file exports and imports. A scope is granted in one step.</td>
+        </tr>
+        <tr data-step="2">
+          <th>Workflow</th>
+          <td>The review as durable steps: contracts, tests, triage, review, and the landing under a lock.</td>
+        </tr>
+        <tr data-step="3">
+          <th>Containers</th>
+          <td>The repository's tests, in a fresh container for each run. No secret inside: a Worker adds the token on the way out.</td>
+        </tr>
+        <tr data-step="4">
+          <th>Artifacts</th>
+          <td>A fork per task, and candidates on hidden refs. dibs builds commits and packfiles itself, and joins shared files.</td>
+        </tr>
+        <tr data-step="5">
+          <th>Workers AI</th>
+          <td>Clef, a small decision model, for the coupling no import shows. It informs, and never decides alone.</td>
+        </tr>
+        <tr data-step="6">
+          <th>Claude</th>
+          <td>The reviewer: it reads the repository, and is told what the tests and the index already checked.</td>
+        </tr>
+      </table>
+    </main>
+
+    <main id="limits">
+      <div class="corner wordmark">dibs</div>
+      <h1>What it does not do, and how to run it</h1>
+      <ul class="plain">
+        <li data-step="1">The index sees signatures, not behaviour.<small>The tests see behaviour, so a repository without tests has only the reviewer. The index reads TypeScript and JavaScript.</small></li>
+        <li data-step="2"><span class="mono">pnpm local</span> runs all of it on your machine.<small>No account and no keys: stand-ins take the place of Artifacts, Workers AI and the reviewer.</small></li>
+        <li data-step="3">MIT licence.<small>It deploys to your own Cloudflare account with two commands.</small></li>
+      </ul>
+    </main>
+
+    <main id="end">
+      <div class="wordmark">dibs</div>
+      <p>Scopes before edits. Tests before reviews. Verdicts in git.</p>
+    </main>
+
+    <div id="caption"><span></span></div>
+
+    <script>
+      const card = new URLSearchParams(location.search).get("card") ?? "title";
+      document.getElementById(card).classList.add("shown");
+      window.setCaption = (text) => {
+        document.querySelector("#caption span").textContent = text;
+      };
+      // Shows a card up to a step: what belongs to a later step keeps its place and stays hidden.
+      window.setStep = (step) => {
+        for (const element of document.querySelectorAll("[data-step]")) {
+          element.classList.toggle("later", Number(element.dataset.step) > step);
+        }
+      };
+      window.setStep(0);
+      // The terminals show what the recording found on main. Each is given as HTML: escaped text and a few highlights.
+      window.fill = (id, html) => {
+        document.getElementById(id).innerHTML = html;
+      };
+    </script>
+  </body>
+</html>

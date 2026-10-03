@@ -1,0 +1,39 @@
+// The configuration for running dibs on one machine (`pnpm local`). It differs
+// from the deployed one in a single way: there is no Artifacts and no Workers AI
+// binding, because entry.ts supplies stand-ins for both. The Durable Objects and
+// the Workflow are the real ones, run locally by Wrangler.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "dibs-local",
+  "main": "./entry.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": "../../board/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/mcp/*"]
+  },
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "COORDINATOR", "class_name": "Coordinator" },
+      { "name": "REGISTRY", "class_name": "Registry" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Coordinator", "Registry"] }],
+
+  "workflows": [
+    { "binding": "REVIEW_WORKFLOW", "name": "dibs-review-local", "class_name": "ReviewWorkflow" }
+  ],
+
+  "vars": {
+    "REVIEW_MODEL": "claude-opus-5-5"
+  },
+
+  // run.ts passes these two in the environment, and PLATFORM_URL and
+  // ANTHROPIC_BASE_URL (both the address of platform.ts) with --var.
+  "secrets": {
+    "required": ["ADMIN_TOKEN", "ANTHROPIC_API_KEY"]
+  }
+}

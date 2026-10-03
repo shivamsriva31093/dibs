@@ -1,0 +1,62 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "dibs",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "enable_ctx_exports"],
+  "observability": { "enabled": true },
+
+  // The board (built by `pnpm build:board`). Everything except the API and the
+  // MCP endpoints is served from these files without running the Worker.
+  "assets": {
+    "directory": "./board/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/mcp/*"]
+  },
+
+  // Git storage. One namespace holds the registered repos and every task fork.
+  // Artifacts has no local simulation, so `wrangler dev` uses the real service too.
+  "artifacts": [{ "binding": "ARTIFACTS", "namespace": "dibs", "remote": true }],
+
+  // Workers AI, used for the Clef decision model. It is always the real service.
+  "ai": { "binding": "AI", "remote": true },
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "COORDINATOR", "class_name": "Coordinator" },
+      { "name": "REGISTRY", "class_name": "Registry" },
+      { "name": "GATE", "class_name": "GateRunner" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Coordinator", "Registry"] },
+    { "tag": "v2", "new_sqlite_classes": ["GateRunner"] }
+  ],
+
+  // The container the repository's checks run in (src/gate-runner.ts). Each run picks the image
+  // and size itself, which is what the durable_object scheduling policy is for.
+  // Deploying builds the image, so Docker has to be running.
+  "containers": [
+    {
+      "class_name": "GateRunner",
+      "scheduling_policy": "durable_object",
+      "images": { "gate": { "dockerfile": "./gate/Dockerfile" } }
+    }
+  ],
+
+  "workflows": [
+    { "binding": "REVIEW_WORKFLOW", "name": "dibs-review", "class_name": "ReviewWorkflow" }
+  ],
+
+  "vars": {
+    "REVIEW_MODEL": "claude-opus-5-5"
+  },
+
+  // ADMIN_TOKEN guards the HTTP API and the board; ANTHROPIC_API_KEY is used by the
+  // reviewer. Wrangler will not create a Worker whose required secrets are missing,
+  // so the first deploy passes them in a file (`pnpm run deploy:first`). After that,
+  // change one with `wrangler secret put <NAME>`.
+  "secrets": {
+    "required": ["ADMIN_TOKEN", "ANTHROPIC_API_KEY"]
+  }
+}
